@@ -73,6 +73,15 @@ interface CsvData {
   rows: CsvCell[][];
 }
 
+interface TradeData {
+  [key: string]: any;
+}
+
+interface TradesData {
+  Long: TradeData[];
+  Short: TradeData[];
+}
+
 const accountNames = [
   'Account 1',
   'Account 2',
@@ -81,7 +90,6 @@ const accountNames = [
 ];
 
 const BotControlPanel: React.FC = () => {
-  // *** FIX: Move ALL useState calls inside the component ***
   // Form state
   const [maxMode, setMaxMode] = useState<MaxMode>('Reverse');
   const [accountName, setAccountName] = useState('');
@@ -100,11 +108,13 @@ const BotControlPanel: React.FC = () => {
   const [submitStatus, setSubmitStatus] = useState<{success: boolean; message: string} | null>(null);
   const [mainTabValue, setMainTabValue] = useState(0);
   const [csvData, setCsvData] = useState<CsvData | null>(null);
+  const [tradesData, setTradesData] = useState<TradesData | null>(null);
   
   // File upload state
   const [useFile, setUseFile] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [resultTabValue, setResultTabValue] = useState(0);
+  const [tradesTabValue, setTradesTabValue] = useState(0);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -166,22 +176,30 @@ const BotControlPanel: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      const responseJson = await response.json();
 
-      const responseJson = await response.json(); // full JSON
-
-
-      // This contains the full backend response structure
       console.log("Full response:", responseJson);
       
-      // Now correctly extract parts:
       const apiResult = responseJson.result;
       const jsonAPIResult = JSON.stringify(apiResult, null, 2);
-
       const trades = responseJson.trades;
       
       console.log("apiResult:", apiResult);       
-      console.log("trades:", trades);             
+      console.log("trades:", trades);
 
+      // Process trades data
+      if (trades && typeof trades === 'object') {
+        setTradesData({
+          Long: trades.Long || [],
+          Short: trades.Short || []
+        });
+        console.log('Trades data set successfully:', trades);
+      } else {
+        setTradesData(null);
+        console.log('No trades data available');
+      }
+
+      // Process result data for table
       if (apiResult && typeof apiResult === 'object') {
         const flattened: any[] = [];
       
@@ -248,10 +266,50 @@ const BotControlPanel: React.FC = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setSelectedFile(file || null);
-    // *** FIX: Actually set the filename when file is selected ***
     if (file) {
       setFileName(file.name);
     }
+  };
+
+  // Helper function to convert trades data to CSV format
+  const downloadTradesAsCSV = (tradesArray: TradeData[], type: 'Long' | 'Short') => {
+    if (!tradesArray || tradesArray.length === 0) return;
+
+    const headers = Object.keys(tradesArray[0]);
+    const csvContent = [
+      headers.join(','),
+      ...tradesArray.map(trade => 
+        headers.map(header => {
+          const value = String(trade[header] || '').replace(/"/g, '""');
+          return /[,\n"]/.test(value) ? `"${value}"` : value;
+        }).join(',')
+      )
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${type}-trades-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Helper function to copy trades data to clipboard
+  const copyTradesToClipboard = (tradesArray: TradeData[]) => {
+    if (!tradesArray || tradesArray.length === 0) return;
+
+    const headers = Object.keys(tradesArray[0]);
+    const tsvData = [
+      headers.join('\t'),
+      ...tradesArray.map(trade => 
+        headers.map(header => trade[header] || '').join('\t')
+      )
+    ].join('\n');
+    
+    navigator.clipboard.writeText(tsvData);
   };
 
   const a11yProps = (index: number) => ({
@@ -290,6 +348,81 @@ const BotControlPanel: React.FC = () => {
   
   const handleResultTabChange = (event: React.SyntheticEvent, newTabValue: number) => {
     setResultTabValue(newTabValue);
+  };
+
+  const handleTradesTabChange = (event: React.SyntheticEvent, newTabValue: number) => {
+    setTradesTabValue(newTabValue);
+  };
+
+  // Render trades table
+  const renderTradesTable = (tradesArray: TradeData[], type: 'Long' | 'Short') => {
+    if (!tradesArray || tradesArray.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" color="textSecondary">
+            No {type} trades available
+          </Typography>
+        </Box>
+      );
+    }
+
+    const headers = Object.keys(tradesArray[0]);
+    
+    return (
+      <Box sx={{ width: '100%' }}>
+        <Typography variant="h6" gutterBottom>
+          {type} Trades ({tradesArray.length} trades)
+        </Typography>
+        <Box sx={{ overflowX: 'auto' }}>
+          <TableContainer component={Paper}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  {headers.map((header, index) => (
+                    <TableCell key={index}>
+                      {header}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {tradesArray.map((trade, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {headers.map((header, cellIndex) => (
+                      <TableCell key={cellIndex}>
+                        {trade[header]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+        <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ContentCopyIcon />}
+            onClick={() => {
+              copyTradesToClipboard(tradesArray);
+              setSubmitStatus({ success: true, message: `${type} trades copied to clipboard!` });
+            }}
+          >
+            Copy {type} Trades
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => {
+              downloadTradesAsCSV(tradesArray, type);
+              setSubmitStatus({ success: true, message: `${type} trades CSV download started!` });
+            }}
+          >
+            Download {type} CSV
+          </Button>
+        </Box>
+      </Box>
+    );
   };
 
   return (
@@ -524,11 +657,12 @@ const BotControlPanel: React.FC = () => {
                 aria-label="result tabs"
               >
                 <Tab label="JSON" />
-                {/* <Tab label="Table" /> */}
-                <Tab label="Table" disabled={!csvData} />
+                <Tab label="Result Table" disabled={!csvData} />
+                <Tab label="Trades Table" disabled={!tradesData} />
               </Tabs>
             </Box>
             
+            {/* JSON Tab */}
             <TabPanel value={resultTabValue} index={0}>
               <StyledTextArea
                 value={result}
@@ -569,6 +703,7 @@ const BotControlPanel: React.FC = () => {
                   onClick={() => {
                     setResult('');
                     setCsvData(null);
+                    setTradesData(null);
                     setResultTabValue(0);
                   }}
                 >
@@ -577,6 +712,7 @@ const BotControlPanel: React.FC = () => {
               </Box>
             </TabPanel>
             
+            {/* Result Table Tab */}
             <TabPanel value={resultTabValue} index={1}>
               {csvData && (
                 <Box sx={{ width: '100%', overflowX: 'auto' }}>
@@ -615,7 +751,6 @@ const BotControlPanel: React.FC = () => {
                       variant="outlined"
                       startIcon={<ContentCopyIcon />}
                       onClick={() => {
-                        // Convert table data to TSV
                         const tsvData = [
                           csvData.headers.join('\t'),
                           ...csvData.rows.map(row => 
@@ -632,19 +767,16 @@ const BotControlPanel: React.FC = () => {
                       variant="outlined"
                       startIcon={<DownloadIcon />}
                       onClick={() => {
-                        // Convert table data to CSV
                         const csvContent = [
                           csvData.headers.join(','),
                           ...csvData.rows.map(row => 
                             row.map(cell => {
-                              // Escape quotes and wrap in quotes if the value contains commas or quotes
                               const value = String(cell.value).replace(/"/g, '""');
                               return /[,\n"]/.test(value) ? `"${value}"` : value;
                             }).join(',')
                           )
                         ].join('\n');
                         
-                        // Create download link
                         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                         const url = URL.createObjectURL(blob);
                         const link = document.createElement('a');
@@ -661,6 +793,34 @@ const BotControlPanel: React.FC = () => {
                       Download CSV
                     </Button>
                   </Box>
+                </Box>
+              )}
+            </TabPanel>
+
+            {/* Trades Table Tab */}
+            <TabPanel value={resultTabValue} index={2}>
+              {tradesData && (
+                <Box sx={{ width: '100%' }}>
+                  <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                    <Tabs 
+                      value={tradesTabValue} 
+                      onChange={handleTradesTabChange} 
+                      aria-label="trades tabs"
+                    >
+                      <Tab label={`Long (${tradesData.Long?.length || 0})`} />
+                      <Tab label={`Short (${tradesData.Short?.length || 0})`} />
+                    </Tabs>
+                  </Box>
+                  
+                  {/* Long Trades Sub-Tab */}
+                  <TabPanel value={tradesTabValue} index={0}>
+                    {renderTradesTable(tradesData.Long, 'Long')}
+                  </TabPanel>
+                  
+                  {/* Short Trades Sub-Tab */}
+                  <TabPanel value={tradesTabValue} index={1}>
+                    {renderTradesTable(tradesData.Short, 'Short')}
+                  </TabPanel>
                 </Box>
               )}
             </TabPanel>
