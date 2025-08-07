@@ -166,14 +166,22 @@ const BotControlPanel: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
-      console.log('Bot response:', result);
+
+      const responseJson = await response.json(); // full JSON
+
+
+      // This contains the full backend response structure
+      console.log("Full response:", responseJson);
       
-      // Format JSON result
-      const jsonResult = JSON.stringify(result, null, 2);
+      // Now correctly extract parts:
+      const apiResult = responseJson.result;
+      const jsonAPIResult = JSON.stringify(apiResult, null, 2);
+
+      const trades = responseJson.trades;
       
-      // *** FIX: Use result directly instead of result.results ***
-      let apiResult = result;
+      console.log("apiResult:", apiResult);       
+      console.log("trades:", trades);             
+
       if (apiResult && typeof apiResult === 'object') {
         const flattened: any[] = [];
       
@@ -219,7 +227,7 @@ const BotControlPanel: React.FC = () => {
         console.log('apiResult is not a valid object');
       }
       
-      setResult(jsonResult);
+      setResult(jsonAPIResult);
 
       setSubmitStatus({
         success: true,
@@ -516,6 +524,7 @@ const BotControlPanel: React.FC = () => {
                 aria-label="result tabs"
               >
                 <Tab label="JSON" />
+                {/* <Tab label="Table" /> */}
                 <Tab label="Table" disabled={!csvData} />
               </Tabs>
             </Box>
@@ -618,6 +627,38 @@ const BotControlPanel: React.FC = () => {
                       }}
                     >
                       Copy Table
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => {
+                        // Convert table data to CSV
+                        const csvContent = [
+                          csvData.headers.join(','),
+                          ...csvData.rows.map(row => 
+                            row.map(cell => {
+                              // Escape quotes and wrap in quotes if the value contains commas or quotes
+                              const value = String(cell.value).replace(/"/g, '""');
+                              return /[,\n"]/.test(value) ? `"${value}"` : value;
+                            }).join(',')
+                          )
+                        ].join('\n');
+                        
+                        // Create download link
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `bot-results-${new Date().toISOString().slice(0, 10)}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        
+                        setSubmitStatus({ success: true, message: 'CSV download started!' });
+                      }}
+                    >
+                      Download CSV
                     </Button>
                   </Box>
                 </Box>
