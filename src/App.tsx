@@ -430,33 +430,101 @@ const BotControlPanel: React.FC = () => {
 
     const headers = Object.keys(tradesArray[0]);
     
+    // Helper function to check if a value is numeric
+    const isNumeric = (value: any) => {
+      if (typeof value === 'number') return true;
+      if (typeof value !== 'string') return false;
+      return !isNaN(parseFloat(value)) && isFinite(parseFloat(value));
+    };
+    
     return (
       <Box sx={{ width: '100%' }}>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'bold' }}>
           {type} Trades ({tradesArray.length} trades)
         </Typography>
         <Box sx={{ overflowX: 'auto' }}>
-          <TableContainer component={Paper}>
+          <TableContainer 
+            component={Paper}
+            sx={{ 
+              maxHeight: '600px',
+              border: '1px solid #e0e0e0',
+              borderRadius: 2
+            }}
+          >
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  {headers.map((header, index) => (
-                    <TableCell key={index}>
-                      {header}
-                    </TableCell>
-                  ))}
+                  {headers.map((header, index) => {
+                    const firstRowValue = tradesArray[0]?.[header];
+                    return (
+                      <TableCell 
+                        key={index}
+                        align={isNumeric(firstRowValue) ? 'right' : 'left'}
+                        sx={{
+                          backgroundColor: '#f5f5f5',
+                          fontWeight: 'bold',
+                          fontSize: '0.875rem',
+                          borderRight: index < headers.length - 1 ? '1px solid #e0e0e0' : 'none',
+                          whiteSpace: 'nowrap',
+                          textTransform: 'capitalize'
+                        }}
+                      >
+                        {header.replace(/_/g, ' ')}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {tradesArray.map((trade, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {headers.map((header, cellIndex) => (
-                      <TableCell key={cellIndex}>
-                        {trade[header]}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
+                {tradesArray.map((trade, rowIndex) => {
+                  const isProfit = 'profit' in trade && typeof trade['profit'] === 'number' && trade['profit'] > 0;
+                  const isLoss = 'profit' in trade && typeof trade['profit'] === 'number' && trade['profit'] < 0;
+                  
+                  return (
+                    <TableRow 
+                      key={rowIndex}
+                      sx={{
+                        '&:nth-of-type(odd)': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.02)'
+                        },
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                        },
+                        backgroundColor: isProfit 
+                          ? 'rgba(200, 230, 200, 0.3)' 
+                          : isLoss 
+                            ? 'rgba(255, 200, 200, 0.3)' 
+                            : 'inherit'
+                      }}
+                    >
+                      {headers.map((header, cellIndex) => {
+                        const value = trade[header];
+                        const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+                        const isCellNumeric = isNumeric(value);
+                        
+                        return (
+                          <TableCell 
+                            key={cellIndex}
+                            align={isCellNumeric ? 'right' : 'left'}
+                            sx={{
+                              borderRight: cellIndex < headers.length - 1 ? '1px solid #e0e0e0' : 'none',
+                              whiteSpace: 'nowrap',
+                              color: isCellNumeric && numericValue < 0 ? '#d32f2f' : 'inherit',
+                              fontWeight: isCellNumeric && numericValue !== 0 ? '500' : 'inherit'
+                            }}
+                          >
+                            {isCellNumeric && typeof value === 'string' && !isNaN(parseFloat(value))
+                              ? parseFloat(value).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 8
+                                })
+                              : value}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
