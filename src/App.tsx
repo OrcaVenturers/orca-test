@@ -115,6 +115,68 @@ const BotControlPanel: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [resultTabValue, setResultTabValue] = useState(0);
   const [tradesTabValue, setTradesTabValue] = useState(0);
+
+  // Helper function to determine if a value represents profit/loss
+  const isProfitLossCell = (header: string, value: any): 'profit' | 'loss' | 'neutral' => {
+    // Exact column names that should be color-coded
+    const profitLossColumns = [ 'Profit', 'Loss', 'NetProfit','MaxDrawDown'];
+    
+    // Check if this is one of the specific columns we want to color-coded
+    if (profitLossColumns.includes(header)) {
+      let numValue: number;
+      
+      if (typeof value === 'number') {
+        numValue = value;
+      } else {
+        // Handle currency strings like "$14,400" or "$-15,400"
+        const cleanValue = String(value)
+          .replace(/\$/g, '')      // Remove dollar signs
+          .replace(/,/g, '')       // Remove commas
+          .trim();                 // Remove whitespace
+        
+        numValue = parseFloat(cleanValue);
+      }
+      
+      if (!isNaN(numValue)) {
+        if (header === 'Profit') {
+          return 'profit';
+
+        }
+        else if (header === 'Loss' || header === 'MaxDrawDown') {
+          return 'loss';
+        }
+
+        else if (header === 'NetProfit') {
+          if (numValue > 0) return 'profit';
+          if (numValue < 0) return 'loss';
+        }
+      }
+    }
+    
+    return 'neutral';
+  };
+
+  // Add this function to get cell styling
+  const getCellStyle = (header: string, value: any) => {
+    const profitLoss = isProfitLossCell(header, value);
+    
+    switch (profitLoss) {
+      case 'profit':
+        return {
+          backgroundColor: '#e8f5e8',
+          color: '#2e7d32',
+          fontWeight: 'bold'
+        };
+      case 'loss':
+        return {
+          backgroundColor: '#ffebee',
+          color: '#c62828',
+          fontWeight: 'bold'
+        };
+      default:
+        return {};
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -712,41 +774,131 @@ const BotControlPanel: React.FC = () => {
               </Box>
             </TabPanel>
             
-            {/* Result Table Tab */}
+            {/* Enhanced Result Table Tab */}
             <TabPanel value={resultTabValue} index={1}>
               {csvData && (
-                <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                  <TableContainer component={Paper}>
-                    <Table size="small" stickyHeader>
-                      <TableHead>
-                        <TableRow>
-                          {csvData.headers.map((header, index) => (
-                            <TableCell 
-                              key={index}
-                              align={csvData.rows[0]?.[index]?.isNumeric ? 'right' : 'left'}
-                            >
-                              {header}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {csvData.rows.map((row, rowIndex) => (
-                          <TableRow key={rowIndex}>
-                            {row.map((cell, cellIndex: number) => (
+                <Box sx={{ width: '100%' }}>
+                  <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'bold' }}>
+                    Strategy Results Summary ({csvData.rows.length} strategies)
+                  </Typography>
+                  
+                  {/* Color Legend */}
+                  <Box sx={{ 
+                    mb: 2, 
+                    p: 2, 
+                    backgroundColor: '#f8f9fa', 
+                    borderRadius: 1,
+                    border: '1px solid #e0e0e0'
+                  }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                      Color Legend:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ 
+                          width: 16, 
+                          height: 16, 
+                          backgroundColor: '#e8f5e8',
+                          border: '1px solid #2e7d32',
+                          borderRadius: 0.5
+                        }} />
+                        <Typography variant="body2">Positive Profit/Winning</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ 
+                          width: 16, 
+                          height: 16, 
+                          backgroundColor: '#ffebee',
+                          border: '1px solid #c62828',
+                          borderRadius: 0.5
+                        }} />
+                        <Typography variant="body2">Negative/Loss</Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ overflowX: 'auto' }}>
+                    <TableContainer 
+                      component={Paper} 
+                      sx={{ 
+                        maxHeight: '600px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 2
+                      }}
+                    >
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            {csvData.headers.map((header, index) => (
                               <TableCell 
-                                key={cellIndex}
-                                align={cell.isNumeric ? 'right' : 'left'}
+                                key={index}
+                                align={csvData.rows[0]?.[index]?.isNumeric ? 'right' : 'left'}
+                                sx={{
+                                  backgroundColor: '#f5f5f5',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.875rem',
+                                  borderRight: index < csvData.headers.length - 1 ? '1px solid #e0e0e0' : 'none',
+                                  whiteSpace: 'nowrap',
+                                  textTransform: 'capitalize'
+                                }}
                               >
-                                {cell.value}
+                                {header.replace(/_/g, ' ')}
                               </TableCell>
                             ))}
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                  <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+                        </TableHead>
+                        <TableBody>
+                          {csvData.rows.map((row, rowIndex) => (
+                            <TableRow 
+                              key={rowIndex}
+                              sx={{
+                                '&:nth-of-type(odd)': {
+                                  backgroundColor: '#fafafa',
+                                },
+                                '&:hover': {
+                                  backgroundColor: '#f0f0f0',
+                                },
+                              }}
+                            >
+                              {row.map((cell, cellIndex: number) => {
+                                const header = csvData.headers[cellIndex];
+                                const cellStyle = getCellStyle(header, cell.value);
+                                
+                                return (
+                                  <TableCell 
+                                    key={cellIndex}
+                                    align={cell.isNumeric ? 'right' : 'left'}
+                                    sx={{
+                                      borderRight: cellIndex < row.length - 1 ? '1px solid #e0e0e0' : 'none',
+                                      fontSize: '0.813rem',
+                                      padding: '8px 12px',
+                                      ...cellStyle
+                                    }}
+                                  >
+                                    {typeof cell.value === 'number' 
+                                      ? cell.value.toLocaleString() 
+                                      : cell.value
+                                    }
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                  
+                  {/* Enhanced Action Buttons */}
+                  <Box sx={{ 
+                    mt: 3, 
+                    display: 'flex', 
+                    gap: 2, 
+                    flexWrap: 'wrap',
+                    p: 2,
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: 1
+                  }}>
                     <Button
                       variant="outlined"
                       startIcon={<ContentCopyIcon />}
@@ -760,8 +912,16 @@ const BotControlPanel: React.FC = () => {
                         navigator.clipboard.writeText(tsvData);
                         setSubmitStatus({ success: true, message: 'Table data copied to clipboard!' });
                       }}
+                      sx={{
+                        borderColor: '#1976d2',
+                        color: '#1976d2',
+                        '&:hover': {
+                          backgroundColor: '#e3f2fd',
+                          borderColor: '#1565c0'
+                        }
+                      }}
                     >
-                      Copy Table
+                      Copy Table Data
                     </Button>
                     <Button
                       variant="outlined"
@@ -781,17 +941,39 @@ const BotControlPanel: React.FC = () => {
                         const url = URL.createObjectURL(blob);
                         const link = document.createElement('a');
                         link.setAttribute('href', url);
-                        link.setAttribute('download', `bot-results-${new Date().toISOString().slice(0, 10)}.csv`);
+                        link.setAttribute('download', `strategy-results-${new Date().toISOString().slice(0, 10)}.csv`);
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
                         
-                        setSubmitStatus({ success: true, message: 'CSV download started!' });
+                        setSubmitStatus({ success: true, message: 'Strategy results CSV download started!' });
+                      }}
+                      sx={{
+                        borderColor: '#2e7d32',
+                        color: '#2e7d32',
+                        '&:hover': {
+                          backgroundColor: '#e8f5e8',
+                          borderColor: '#1b5e20'
+                        }
                       }}
                     >
-                      Download CSV
+                      Download Results CSV
                     </Button>
+                    
+                    {/* Add summary stats */}
+                    <Box sx={{ 
+                      ml: 'auto', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2,
+                      fontSize: '0.875rem',
+                      color: '#666'
+                    }}>
+                      <Typography variant="body2">
+                        <strong>Total Strategies:</strong> {csvData.rows.length}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
               )}
