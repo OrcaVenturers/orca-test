@@ -5,11 +5,20 @@ import BotControlPanel from './App';
 
 const theme = createTheme({
   palette: {
+    mode: 'dark',
     primary: {
-      main: '#1976d2',
+      main: '#ffffff',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#cccccc',
+    },
+    background: {
+      default: '#000000',
+      paper: '#0a0a0a',
+    },
+    text: {
+      primary: '#ffffff',
+      secondary: '#cccccc',
     },
   },
   typography: {
@@ -22,6 +31,16 @@ const theme = createTheme({
       'Arial',
       'sans-serif',
     ].join(','),
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: '#000000',
+          color: '#ffffff',
+        },
+      },
+    },
   },
 });
 

@@ -44,17 +44,17 @@ const StyledTextArea = styled(TextareaAutosize)({
   fontSize: '14px',
   lineHeight: '1.5',
   borderRadius: '6px',
-  border: '2px solid #e0e0e0',
-  backgroundColor: '#f8f9fa',
-  color: '#333',
+  border: '2px solid #444',
+  backgroundColor: '#1a1a1a',
+  color: '#ffffff',
   resize: 'vertical',
   '&:focus': {
     outline: 'none',
-    borderColor: '#1976d2',
-    boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.1)'
+    borderColor: '#ffffff',
+    boxShadow: '0 0 0 3px rgba(255, 255, 255, 0.2)'
   },
   '&::placeholder': {
-    color: '#999',
+    color: '#888',
     fontStyle: 'italic'
   }
 });
@@ -556,8 +556,8 @@ const BotControlPanel: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4, minHeight: '100vh' }}>
+        <Paper elevation={3} sx={{ p: 4, backgroundColor: '#0a0a0a', color: '#ffffff' }}>
           <Typography variant="h4" component="h1" gutterBottom>
             Trading Bot Control Panel
           </Typography>
@@ -779,7 +779,7 @@ const BotControlPanel: React.FC = () => {
         
         {/* Results Section */}
         {result && (
-          <Paper elevation={3} sx={{ mt: 4, p: 3 }}>
+          <Paper elevation={3} sx={{ mt: 4, p: 3, backgroundColor: '#0a0a0a', color: '#ffffff' }}>
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
               <Tabs 
                 value={resultTabValue} 
@@ -854,9 +854,9 @@ const BotControlPanel: React.FC = () => {
                   <Box sx={{ 
                     mb: 2, 
                     p: 2, 
-                    backgroundColor: '#f8f9fa', 
+                    backgroundColor: '#1a1a1a', 
                     borderRadius: 1,
-                    border: '1px solid #e0e0e0'
+                    border: '1px solid #444'
                   }}>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
                       Color Legend:
@@ -890,8 +890,9 @@ const BotControlPanel: React.FC = () => {
                       component={Paper} 
                       sx={{ 
                         maxHeight: '600px',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: 2
+                        border: '1px solid #444',
+                        borderRadius: 2,
+                        backgroundColor: '#1a1a1a'
                       }}
                     >
                       <Table size="small" stickyHeader>
@@ -902,10 +903,11 @@ const BotControlPanel: React.FC = () => {
                                 key={index}
                                 align={csvData.rows[0]?.[index]?.isNumeric ? 'right' : 'left'}
                                 sx={{
-                                  backgroundColor: '#f5f5f5',
+                                  backgroundColor: '#2a2a2a',
+                                  color: '#ffffff',
                                   fontWeight: 'bold',
                                   fontSize: '0.875rem',
-                                  borderRight: index < csvData.headers.length - 1 ? '1px solid #e0e0e0' : 'none',
+                                  borderRight: index < csvData.headers.length - 1 ? '1px solid #444' : 'none',
                                   whiteSpace: 'nowrap',
                                   textTransform: 'capitalize'
                                 }}
@@ -921,10 +923,13 @@ const BotControlPanel: React.FC = () => {
                               key={rowIndex}
                               sx={{
                                 '&:nth-of-type(odd)': {
-                                  backgroundColor: '#fafafa',
+                                  backgroundColor: '#1a1a1a',
+                                },
+                                '&:nth-of-type(even)': {
+                                  backgroundColor: '#0f0f0f',
                                 },
                                 '&:hover': {
-                                  backgroundColor: '#f0f0f0',
+                                  backgroundColor: '#2a2a2a',
                                 },
                               }}
                             >
@@ -937,9 +942,10 @@ const BotControlPanel: React.FC = () => {
                                     key={cellIndex}
                                     align={cell.isNumeric ? 'right' : 'left'}
                                     sx={{
-                                      borderRight: cellIndex < row.length - 1 ? '1px solid #e0e0e0' : 'none',
+                                      borderRight: cellIndex < row.length - 1 ? '1px solid #444' : 'none',
                                       fontSize: '0.813rem',
                                       padding: '8px 12px',
+                                      color: '#ffffff',
                                       ...cellStyle
                                     }}
                                   >
@@ -964,8 +970,9 @@ const BotControlPanel: React.FC = () => {
                     gap: 2, 
                     flexWrap: 'wrap',
                     p: 2,
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: 1
+                    backgroundColor: '#1a1a1a',
+                    borderRadius: 1,
+                    border: '1px solid #444'
                   }}>
                     <Button
                       variant="outlined"
