@@ -93,7 +93,7 @@ const BotControlPanel: React.FC = () => {
   // Form state
   const [maxMode, setMaxMode] = useState<MaxMode>('Reverse');
   const [accountName, setAccountName] = useState('');
-  const [mode, setMode] = useState<Mode>('backtesting');
+  const [mode] = useState<Mode>('backtesting');
   const [contract, setContract] = useState<Contract>('NQ');
   const [dateFrom, setDateFrom] = useState<Date | null>(new Date());
   const [dateTo, setDateTo] = useState<Date | null>(new Date());
@@ -404,15 +404,15 @@ const BotControlPanel: React.FC = () => {
     );
   };
 
-  const handleMainTabChange = (event: React.SyntheticEvent, newTabValue: number) => {
+  const handleMainTabChange = (_event: React.SyntheticEvent, newTabValue: number) => {
     setMainTabValue(newTabValue);
   };
   
-  const handleResultTabChange = (event: React.SyntheticEvent, newTabValue: number) => {
+  const handleResultTabChange = (_event: React.SyntheticEvent, newTabValue: number) => {
     setResultTabValue(newTabValue);
   };
 
-  const handleTradesTabChange = (event: React.SyntheticEvent, newTabValue: number) => {
+  const handleTradesTabChange = (_event: React.SyntheticEvent, newTabValue: number) => {
     setTradesTabValue(newTabValue);
   };
 
